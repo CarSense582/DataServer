@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Bundle;
 import android.widget.Toast;
 
 public class ContentManagerReceiver extends BroadcastReceiver {
@@ -24,6 +25,8 @@ public class ContentManagerReceiver extends BroadcastReceiver {
         int duration = Toast.LENGTH_SHORT;
         Toast toast = Toast.makeText(context, text, duration);
         toast.show();
+        Bundle results = getResultExtras(true);
+        results.putString("broadCastResp","DS responding to CM broadcast");
     }
 
 }
