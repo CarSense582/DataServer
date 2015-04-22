@@ -1,5 +1,6 @@
 package com.example.michael.dataserver;
 
+import android.content.IntentFilter;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -12,6 +13,11 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //Setup broadcast receiver
+        final String SOME_ACTION = "com.example.michael.contentmanager.broadcaster";
+        IntentFilter intentFilter = new IntentFilter(SOME_ACTION);
+        ContentManagerReceiver mReceiver = new ContentManagerReceiver();
+        getApplicationContext().registerReceiver(mReceiver, intentFilter);
     }
 
 

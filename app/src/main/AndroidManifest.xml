@@ -17,15 +17,6 @@
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".ContentManagerReceiver"
-            android:enabled="true"
-            android:exported="true" >
-            <intent-filter>
-                <action android:name="com.example.michael.contentmanager.broadcaster" />
-            </intent-filter>
-        </receiver>
-
         <service
             android:name=".DataService"
             android:enabled="true"
