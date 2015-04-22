@@ -4,5 +4,6 @@
     <string name="app_name">DataServer</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="ds_cm_id">com.example.michael.dataserver.service</string>
 
 </resources>
