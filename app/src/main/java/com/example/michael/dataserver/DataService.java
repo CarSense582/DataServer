@@ -17,12 +17,26 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DataService extends Service {
-    public ExampleSensor sensor;
+abstract public class DataService extends Service {
+    //All abstract functions
+    abstract public int maxReadResponseTime();
+    abstract public int sensorPeriod();
+    //Driver modelled methods
+    abstract public void open();
+    abstract public void readAsync();
+    abstract public void readPeriodic();
+    abstract public void close();
+
+
+    public SensorData sensor;
+    public int max_read_response_time;
+    public int sensor_period;
     final Lock lock = new ReentrantLock();
     final Condition newRead  = lock.newCondition();
     final Condition readFinished = lock.newCondition();
     public DataService() {
+        max_read_response_time = maxReadResponseTime();
+        sensor_period          = sensorPeriod();
     }
 
     /**
@@ -38,15 +52,17 @@ public class DataService extends Service {
                         // Incoming data
                         Message resp = Message.obtain(null, 5);
                         Bundle bResp = new Bundle();
+                        boolean fresh = false;
                         lock.lock();
                         newRead.signal();
                         try {
-                            readFinished.await(100, TimeUnit.MILLISECONDS);
+                            fresh = readFinished.await(max_read_response_time, TimeUnit.MILLISECONDS);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                         bResp.putSerializable("respMap", sensor.getFields());
                         lock.unlock();
+                        bResp.putBoolean("fresh",fresh);
                         resp.setData(bResp);
                         msg.replyTo.send(resp);
                     } catch (RemoteException e) {
@@ -69,20 +85,20 @@ public class DataService extends Service {
      */
     @Override
     public IBinder onBind(Intent intent) {
-        sensor = new ExampleSensor();
         Toast.makeText(getApplicationContext(), "DS binding", Toast.LENGTH_SHORT).show();
+        open();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(true) {
                     lock.lock();
                     try {
-                        if(newRead.await(1000, TimeUnit.MILLISECONDS)) {
-                            //Got signal within a second
-                            sensor.time ++;
+                        if(newRead.await(sensor_period, TimeUnit.MILLISECONDS)) {
+                            //Got signal within period
+                            readAsync();
                         } else {
                             //Time elapsed
-                            sensor.time += 100;
+                            readPeriodic();
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -99,6 +115,7 @@ public class DataService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         Toast.makeText(getApplicationContext(), "DS unbinding", Toast.LENGTH_SHORT).show();
+        close();
         return false; //Don't use rebind
     }
 }

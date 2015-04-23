@@ -18,7 +18,7 @@
         </activity>
 
         <service
-            android:name=".DataService"
+            android:name=".ExampleSensorService"
             android:enabled="true"
             android:exported="true" >
             <intent-filter>
