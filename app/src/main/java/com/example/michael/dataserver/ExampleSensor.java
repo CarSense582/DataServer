@@ -11,5 +11,5 @@ public class ExampleSensor  extends SensorData {
     ExampleSensor() {
         time = 0;
         factor = 1;
-    }git 
+    }
 }
