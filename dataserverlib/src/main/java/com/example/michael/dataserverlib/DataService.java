@@ -12,17 +12,15 @@ import android.widget.Toast;
 
 import com.example.michael.dataserverlib.SensorData;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-abstract public class DataService extends Service {
+abstract public class DataService<T extends SensorData> extends Service {
     //All abstract functions
-    abstract public long maxReadResponseTime();
-    abstract public long maxWriteResponseTime();
-    abstract public long sensorPeriod();
     //Driver modelled methods
     abstract public void open();
     abstract public void readAsync();
@@ -31,11 +29,25 @@ abstract public class DataService extends Service {
     abstract public void writePeriodic();
     abstract public void close();
 
+    //Setup times
+    static final private long NO_SENSOR_PERIOD        = -1;
+    static final private long DEFAULT_READ_RESP_TIME  = 100;
+    static final private long DEFAULT_WRITE_RESP_TIME = 100;
+    public class ServiceTimes {
+        public long maxReadResponseTime, maxWriteResponseTime, sensorPeriod;
+    }
+    //Overwrite to specify own times
+    public ServiceTimes setupTimes() {
+        ServiceTimes times = new ServiceTimes();
+        times.sensorPeriod         = NO_SENSOR_PERIOD;
+        times.maxReadResponseTime  = DEFAULT_READ_RESP_TIME;
+        times.maxWriteResponseTime = DEFAULT_WRITE_RESP_TIME;
+        return times;
+    }
 
-    public SensorData sensor;
-    public long max_read_response_time;
-    public long max_write_response_time;
-    public long sensor_period;
+
+    public T sensor;
+    protected ServiceTimes serviceTimes;
 
     final Lock lock = new ReentrantLock(); //lock sensor
     final Condition newRead  = lock.newCondition();
@@ -46,11 +58,10 @@ abstract public class DataService extends Service {
     public long last_write_time;
 
     public DataService() {
-        max_read_response_time = maxReadResponseTime();
-        max_write_response_time = maxWriteResponseTime();
-        sensor_period          = sensorPeriod();
-        last_read_time         = 0;
-        last_write_time        = 0;
+        serviceTimes    = setupTimes();
+        sensor          = null;
+        last_read_time  = 0;
+        last_write_time = 0;
     }
 
     /**
@@ -61,27 +72,29 @@ abstract public class DataService extends Service {
         public void handleMessage(Message msg) {
             int msgType = msg.what;
             switch (msgType) {
-                case DataServerLibConstants.WRITE_MSG:
+                case DataServerLibConstants.WRITE_MSG: {
+                    //try {
+                    // Incoming data
+                    Message resp = Message.obtain(null, DataServerLibConstants.WRITE_REPLY_MSG);
+                    Bundle bResp = new Bundle();
+                    boolean fresh = false;
+                    lock.lock();
+                    sensor.setFields((HashMap<String, Object>) msg.getData().getSerializable(DataServerLibConstants.WRITE_MAP));
+                    newWrite.signal();
                     try {
-                        // Incoming data
-                        Message resp = Message.obtain(null, DataServerLibConstants.WRITE_REPLY_MSG);
-                        Bundle bResp = new Bundle();
-                        boolean fresh = false;
-                        lock.lock();
-                        sensor.setFields((HashMap<String,Object>)msg.getData().getSerializable(DataServerLibConstants.WRITE_MAP));
-                        newWrite.signal();
-                        try {
-                            fresh = writeFinished.await(max_write_response_time, TimeUnit.MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        lock.unlock();
-                        bResp.putBoolean("fresh",fresh);
-                        resp.setData(bResp);
-                        msg.replyTo.send(resp);
-                    } catch (RemoteException e) {
+                        fresh = writeFinished.await(serviceTimes.maxWriteResponseTime, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    lock.unlock();
+                    bResp.putBoolean("fresh", fresh);
+                    resp.setData(bResp);
+                    //msg.replyTo.send(resp);
+                    //}
+                }
+                    /*catch (RemoteException e) {
+                        e.printStackTrace();
+                    }*/
                     break;
                 case DataServerLibConstants.READ_MSG:
                     try {
@@ -92,7 +105,7 @@ abstract public class DataService extends Service {
                         lock.lock();
                         newRead.signal();
                         try {
-                            fresh = readFinished.await(max_read_response_time, TimeUnit.MILLISECONDS);
+                            fresh = readFinished.await(serviceTimes.maxReadResponseTime, TimeUnit.MILLISECONDS);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -135,7 +148,7 @@ abstract public class DataService extends Service {
                     try {
                         long curTime= System.currentTimeMillis();
                         long diffTime = curTime - last_read_time;
-                        if(diffTime > sensor_period) {
+                        if(diffTime > serviceTimes.sensorPeriod) {
                             last_read_time = curTime;
                             readPeriodic();
                         }
@@ -156,7 +169,7 @@ abstract public class DataService extends Service {
                     try {
                         long curTime= System.currentTimeMillis();
                         long diffTime = curTime - last_write_time;
-                        if(diffTime > sensor_period) {
+                        if(diffTime > serviceTimes.sensorPeriod) {
                             last_write_time = curTime;
                             writePeriodic();
                         }

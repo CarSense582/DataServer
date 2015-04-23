@@ -8,9 +8,9 @@ import com.example.michael.dataserverlib.SensorData;
 /**
  * Created by michael on 4/23/15.
  */
-public class ExampleSensorReceiver extends ContentManagerReceiver {
+public class ExampleSensorReceiver extends ContentManagerReceiver<ExampleSensor> {
     @Override
-    public SensorData getSensor() {
+    public ExampleSensor getSensor() {
         return new ExampleSensor();
     }
     @Override

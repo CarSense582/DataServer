@@ -12,8 +12,8 @@ import com.example.michael.dataserverlib.SensorData;
 
 import java.util.ArrayList;
 
-abstract public class ContentManagerReceiver extends BroadcastReceiver {
-    abstract public SensorData getSensor();
+abstract public class ContentManagerReceiver<T extends SensorData> extends BroadcastReceiver {
+    abstract public T getSensor();
     abstract public String getServiceId(Context c);
     @Override
     public void onReceive(Context context, Intent intent) {
