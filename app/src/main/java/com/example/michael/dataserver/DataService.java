@@ -13,6 +13,7 @@ import android.widget.Toast;
 import java.util.HashMap;
 
 public class DataService extends Service {
+    private int a;
     public DataService() {
     }
 
@@ -43,7 +44,7 @@ public class DataService extends Service {
                         Bundle bResp = new Bundle();
                         bResp.putString("respData", data.toUpperCase());
                         HashMap<String,Object> map = new HashMap<String,Object>();
-                        map.put("a", 3);
+                        map.put("a", a);
                         map.put("b", 4);
                         bResp.putSerializable("respMap", map);
                         resp.setData(bResp);
@@ -69,7 +70,21 @@ public class DataService extends Service {
      */
     @Override
     public IBinder onBind(Intent intent) {
+        a = 0;
         Toast.makeText(getApplicationContext(), "DS binding", Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    try {
+                        Thread.sleep(1000);
+                        a ++;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
         return mMessenger.getBinder();
     }
 
