@@ -15,8 +15,9 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class ContentManagerReceiver extends BroadcastReceiver {
-
+abstract public class ContentManagerReceiver extends BroadcastReceiver {
+    abstract public SensorData getSensor();
+    abstract public String getServiceId(Context c);
     @Override
     public void onReceive(Context context, Intent intent) {
 
@@ -30,11 +31,11 @@ public class ContentManagerReceiver extends BroadcastReceiver {
         if(otherServices == null) {
             otherServices = new ArrayList<String>();
         }
-        String serviceId = context.getResources().getString(R.string.ds_cm_id);
+        String serviceId = getServiceId(context);
         otherServices.add(serviceId);
         results.putStringArrayList("dsServices", otherServices);
         //Add service dependent map
-        results.putSerializable(serviceId, (new ExampleSensor()).getFields());
+        results.putSerializable(serviceId, getSensor().getFields());
     }
 
 }
