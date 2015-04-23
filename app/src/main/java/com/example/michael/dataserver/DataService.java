@@ -13,6 +13,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.widget.Toast;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
@@ -22,10 +23,24 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class DataService extends Service {
     public ExampleSensor sensor;
+    static public Class sensorClass = ExampleSensor.class;
     final Lock lock = new ReentrantLock();
     final Condition newRead  = lock.newCondition();
     final Condition readFinished = lock.newCondition();
     public DataService() {
+        sensor = new ExampleSensor();
+    }
+
+    static public SensorData getBaseType() {
+        try {
+            return (SensorData) sensorClass.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+            return null;
+        } catch (IllegalAccessException e2) {
+            e2.printStackTrace();
+            return null;
+        }
     }
 
     static public class ContentManagerReceiver extends BroadcastReceiver {
@@ -45,9 +60,8 @@ public class DataService extends Service {
             otherServices.add(serviceId);
             results.putStringArrayList("dsServices", otherServices);
             //Add service dependent map
-            results.putSerializable(serviceId, (new ExampleSensor()).getFields());
+            results.putSerializable(serviceId, getBaseType().getFields());
         }
-
     }
 
     /**
