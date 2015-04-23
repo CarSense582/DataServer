@@ -25,6 +25,13 @@
                 <action android:name="com.example.michael.dataserver.service" />
             </intent-filter>
         </service>
+
+        <receiver android:name=".ContentManagerReceiver" >
+            <intent-filter>
+                <action android:name="com.example.michael.contentmanager.broadcaster" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

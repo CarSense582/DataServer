@@ -24,27 +24,17 @@ public class ContentManagerReceiver extends BroadcastReceiver {
         if(intent.getAction() == "com.example.michael.contentmanager.broadcaster") {
             System.out.println("oh yeah");
         }
-        CharSequence text = "Hello toast!";
-        int duration = Toast.LENGTH_SHORT;
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
         Bundle results = getResultExtras(true);
-        //Testing send response
-        results.putString("broadCastResp","DS responding to CM broadcast");
-        //Testing sending array of ids
+        //Add this service id to list
         ArrayList<String> otherServices = results.getStringArrayList("dsServices");
         if(otherServices == null) {
             otherServices = new ArrayList<String>();
         }
         String serviceId = context.getResources().getString(R.string.ds_cm_id);
         otherServices.add(serviceId);
-        System.out.println("DS id: " + serviceId);
         results.putStringArrayList("dsServices", otherServices);
         //Add service dependent map
-        HashMap<String,Object> map = new HashMap<String,Object>();
-        map.put("a", 1);
-        map.put("b", 5);
-        results.putSerializable(serviceId, map);
+        results.putSerializable(serviceId, (new ExampleSensor()).getFields());
     }
 
 }

@@ -13,11 +13,6 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //Setup broadcast receiver
-        final String SOME_ACTION = "com.example.michael.contentmanager.broadcaster";
-        IntentFilter intentFilter = new IntentFilter(SOME_ACTION);
-        ContentManagerReceiver mReceiver = new ContentManagerReceiver();
-        getApplicationContext().registerReceiver(mReceiver, intentFilter);
     }
 
 

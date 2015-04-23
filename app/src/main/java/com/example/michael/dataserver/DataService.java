@@ -2,6 +2,7 @@ package com.example.michael.dataserver;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -11,14 +12,18 @@ import android.os.RemoteException;
 import android.widget.Toast;
 
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DataService extends Service {
-    private int a;
+    public ExampleSensor sensor;
+    final Lock lock = new ReentrantLock();
+    final Condition newRead  = lock.newCondition();
+    final Condition readFinished = lock.newCondition();
     public DataService() {
     }
-
-    /** Command to the service to display a message */
-    static final int MSG_SAY_HELLO = 1;
 
     /**
      * Handler of incoming messages from clients.
@@ -28,27 +33,21 @@ public class DataService extends Service {
         public void handleMessage(Message msg) {
             int msgType = msg.what;
             switch (msgType) {
-                /*
-                case MSG_SAY_HELLO:
-                    Toast.makeText(getApplicationContext(), "hello!", Toast.LENGTH_SHORT).show();
-                    break;
-                 */
                 default:
-                    System.out.println(msg);
                     try {
                         // Incoming data
-                        String data = msg.getData().getString("data");
-                        Toast.makeText(getApplicationContext(), "DS received " + msg.getData().getString("data"),
-                                Toast.LENGTH_SHORT).show();
                         Message resp = Message.obtain(null, 5);
                         Bundle bResp = new Bundle();
-                        bResp.putString("respData", data.toUpperCase());
-                        HashMap<String,Object> map = new HashMap<String,Object>();
-                        map.put("a", a);
-                        map.put("b", 4);
-                        bResp.putSerializable("respMap", map);
+                        lock.lock();
+                        newRead.signal();
+                        try {
+                            readFinished.await(100, TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        bResp.putSerializable("respMap", sensor.getFields());
+                        lock.unlock();
                         resp.setData(bResp);
-
                         msg.replyTo.send(resp);
                     } catch (RemoteException e) {
 
@@ -70,18 +69,26 @@ public class DataService extends Service {
      */
     @Override
     public IBinder onBind(Intent intent) {
-        a = 0;
+        sensor = new ExampleSensor();
         Toast.makeText(getApplicationContext(), "DS binding", Toast.LENGTH_SHORT).show();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(true) {
+                    lock.lock();
                     try {
-                        Thread.sleep(1000);
-                        a ++;
+                        if(newRead.await(1000, TimeUnit.MILLISECONDS)) {
+                            //Got signal within a second
+                            sensor.time ++;
+                        } else {
+                            //Time elapsed
+                            sensor.time += 100;
+                        }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    readFinished.signal();
+                    lock.unlock();
                 }
             }
         }).start();
