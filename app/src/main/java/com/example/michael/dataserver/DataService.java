@@ -10,6 +10,8 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.widget.Toast;
 
+import java.util.HashMap;
+
 public class DataService extends Service {
     public DataService() {
     }
@@ -40,6 +42,10 @@ public class DataService extends Service {
                         Message resp = Message.obtain(null, 5);
                         Bundle bResp = new Bundle();
                         bResp.putString("respData", data.toUpperCase());
+                        HashMap<String,Object> map = new HashMap<String,Object>();
+                        map.put("a", 3);
+                        map.put("b", 4);
+                        bResp.putSerializable("respMap", map);
                         resp.setData(bResp);
 
                         msg.replyTo.send(resp);
