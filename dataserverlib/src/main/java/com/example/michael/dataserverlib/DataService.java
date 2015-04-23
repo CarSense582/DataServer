@@ -138,53 +138,75 @@ abstract public class DataService<T extends SensorData> extends Service {
     public IBinder onBind(Intent intent) {
         Toast.makeText(getApplicationContext(), "DS binding", Toast.LENGTH_SHORT).show();
         open();
+        //Periodic Read
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
-                    lock.lock();
-                    //Read
-                    boolean readUpdated = false;
-                    try {
-                        long curTime= System.currentTimeMillis();
-                        long diffTime = curTime - last_read_time;
-                        if(diffTime > serviceTimes.sensorPeriod) {
-                            last_read_time = curTime;
-                            readPeriodic();
+                if (serviceTimes.sensorPeriod != NO_SENSOR_PERIOD) {
+                    while (true) {
+                        try {
+                            Thread.sleep(serviceTimes.sensorPeriod);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
-                        if(newRead.await(1, TimeUnit.MILLISECONDS)) { //If not instantaneous, move on
-                            //Got signal
-                            readAsync();
-                            readUpdated = true;
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        lock.lock();
+                        readPeriodic();
+                        last_write_time = System.currentTimeMillis();
+                        lock.unlock();
                     }
-                    if(readUpdated) {
+                }
+            }
+        }).start();
+        //Periodic Write
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (serviceTimes.sensorPeriod != NO_SENSOR_PERIOD) {
+                    while (true) {
+                        try {
+                            Thread.sleep(serviceTimes.sensorPeriod);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        lock.lock();
+                        writePeriodic();
+                        last_write_time = System.currentTimeMillis();
+                        lock.unlock();
+                    }
+                }
+            }
+        }).start();
+        //Async Read
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        lock.lock();
+                        newRead.await();
+                        readAsync();
                         readFinished.signal();
-                    }
-
-                    //Write
-                    boolean writeUpdated = false;
-                    try {
-                        long curTime= System.currentTimeMillis();
-                        long diffTime = curTime - last_write_time;
-                        if(diffTime > serviceTimes.sensorPeriod) {
-                            last_write_time = curTime;
-                            writePeriodic();
-                        }
-                        if(newWrite.await(1, TimeUnit.MILLISECONDS)) { //If not instantaneous, move on
-                            //Got signal
-                            writeAsync();
-                            writeUpdated = true;
-                        }
+                        lock.unlock();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    if(writeUpdated) {
+                }
+            }
+        }).start();
+        //Async Write
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        lock.lock();
+                        newWrite.await();
+                        writeAsync();
                         writeFinished.signal();
+                        lock.unlock();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                    lock.unlock();
                 }
             }
         }).start();
