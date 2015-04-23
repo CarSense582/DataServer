@@ -61,14 +61,14 @@ abstract public class DataService extends Service {
         public void handleMessage(Message msg) {
             int msgType = msg.what;
             switch (msgType) {
-                case 23:
+                case DataServerLibConstants.WRITE_MSG:
                     try {
                         // Incoming data
-                        Message resp = Message.obtain(null, 4);
+                        Message resp = Message.obtain(null, DataServerLibConstants.WRITE_REPLY_MSG);
                         Bundle bResp = new Bundle();
                         boolean fresh = false;
                         lock.lock();
-                        sensor.setFields((HashMap<String,Object>)msg.getData().getSerializable("map"));
+                        sensor.setFields((HashMap<String,Object>)msg.getData().getSerializable(DataServerLibConstants.WRITE_MAP));
                         newWrite.signal();
                         try {
                             fresh = writeFinished.await(max_write_response_time, TimeUnit.MILLISECONDS);
@@ -83,7 +83,7 @@ abstract public class DataService extends Service {
                         e.printStackTrace();
                     }
                     break;
-                default:
+                case DataServerLibConstants.READ_MSG:
                     try {
                         // Incoming data
                         Message resp = Message.obtain(null, 5);
@@ -96,7 +96,7 @@ abstract public class DataService extends Service {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        bResp.putSerializable("respMap", sensor.getFields());
+                        bResp.putSerializable(DataServerLibConstants.READ_REPLY_MAP, sensor.getFields());
                         lock.unlock();
                         bResp.putBoolean("fresh",fresh);
                         resp.setData(bResp);
@@ -105,6 +105,9 @@ abstract public class DataService extends Service {
                         e.printStackTrace();
                     }
                     //super.handleMessage(msg);
+                    break;
+                default:
+                    System.out.println("Unhandled Message");
                     break;
             }
         }
