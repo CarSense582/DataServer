@@ -1,6 +1,7 @@
 package com.example.michael.dataserverlib;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 
 /**
@@ -25,10 +26,36 @@ public class SensorData {
             try {
                 Field f = c.getDeclaredField(k);
                 try {
-                    f.set(this, map.get(k));
+                    f.set(this, f.getType().cast(map.get(k)));
                 } catch (IllegalAccessException e) {
                     //Tried to set something we didn't have access to
                     System.out.println("Can't set " + k);
+                } catch(ClassCastException e) {
+                    //Handle a couple of special cases
+                    Type t = f.getType();
+                    try {
+                        String s = map.get(k).toString();
+                        if(t.equals(boolean.class)) {
+                            f.set(this, Boolean.parseBoolean(s));
+                        } else if(t.equals(byte.class)) {
+                            f.set(this, Byte.parseByte(s));
+                        } else if(t.equals(char.class)) {
+                            f.set(this, s.charAt(0));
+                        } else if(t.equals(short.class)) {
+                            f.set(this, Short.parseShort(s));
+                        } else if (t.equals(int.class)) {
+                            f.set(this, Integer.parseInt(s));
+                        } else if(t.equals(long.class)) {
+                            f.set(this, Long.parseLong(s));
+                        } else if(t.equals(float.class)) {
+                            f.set(this, Float.parseFloat(s));
+                        } else if(t.equals(double.class)) {
+                            f.set(this, Double.parseDouble(s));
+                        }
+                    } catch (IllegalAccessException e2) {
+                        e.printStackTrace();
+                        System.out.println("can't do it");
+                    }
                 }
             } catch (NoSuchFieldException e) {
                 //Just drop on floor
