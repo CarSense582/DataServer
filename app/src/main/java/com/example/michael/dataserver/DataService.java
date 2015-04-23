@@ -1,6 +1,8 @@
 package com.example.michael.dataserver;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -11,6 +13,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -23,6 +26,28 @@ public class DataService extends Service {
     final Condition newRead  = lock.newCondition();
     final Condition readFinished = lock.newCondition();
     public DataService() {
+    }
+
+    static public class ContentManagerReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            System.out.println(intent);
+            if(intent.getAction() == "com.example.michael.contentmanager.broadcaster") {
+                System.out.println("oh yeah");
+            }
+            Bundle results = getResultExtras(true);
+            //Add this service id to list
+            ArrayList<String> otherServices = results.getStringArrayList("dsServices");
+            if(otherServices == null) {
+                otherServices = new ArrayList<String>();
+            }
+            String serviceId = context.getResources().getString(R.string.ds_cm_id);
+            otherServices.add(serviceId);
+            results.putStringArrayList("dsServices", otherServices);
+            //Add service dependent map
+            results.putSerializable(serviceId, (new ExampleSensor()).getFields());
+        }
+
     }
 
     /**
