@@ -2,6 +2,9 @@ package com.example.michael.dataserver;
 
 import android.content.Context;
 
+import com.example.michael.dataserverlib.ContentManagerReceiver;
+import com.example.michael.dataserverlib.SensorData;
+
 /**
  * Created by michael on 4/23/15.
  */

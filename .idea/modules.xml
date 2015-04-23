@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/DataServer.iml" filepath="$PROJECT_DIR$/DataServer.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dataserverlib/dataserverlib.iml" filepath="$PROJECT_DIR$/dataserverlib/dataserverlib.iml" />
     </modules>
   </component>
 </project>

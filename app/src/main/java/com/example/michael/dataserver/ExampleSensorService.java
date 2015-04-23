@@ -1,9 +1,11 @@
 package com.example.michael.dataserver;
 
+import com.example.michael.dataserverlib.DataService;
+
 /**
  * Created by michael on 4/23/15.
  */
-public class ExampleSensorService extends DataService{
+public class ExampleSensorService extends DataService {
     @Override
     public long maxReadResponseTime() {
         return 100;
