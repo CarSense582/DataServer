@@ -5,11 +5,15 @@ package com.example.michael.dataserver;
  */
 public class ExampleSensorService extends DataService{
     @Override
-    public int maxReadResponseTime() {
+    public long maxReadResponseTime() {
         return 100;
     }
     @Override
-    public int sensorPeriod() {
+    public long maxWriteResponseTime() {
+        return 10;
+    }
+    @Override
+    public long sensorPeriod() {
         return 1000;
     }
     //Driver modelled methods
@@ -24,6 +28,14 @@ public class ExampleSensorService extends DataService{
     @Override
     public void readPeriodic() {
         ((ExampleSensor) sensor).time += 100;
+    }
+    @Override
+    public void writeAsync() {
+        //Write to sensor
+    }
+    @Override
+    public void writePeriodic() {
+        //Write to sensor periodically
     }
     @Override
     public void close() {

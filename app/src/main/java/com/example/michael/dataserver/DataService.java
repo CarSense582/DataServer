@@ -19,24 +19,37 @@ import java.util.concurrent.locks.ReentrantLock;
 
 abstract public class DataService extends Service {
     //All abstract functions
-    abstract public int maxReadResponseTime();
-    abstract public int sensorPeriod();
+    abstract public long maxReadResponseTime();
+    abstract public long maxWriteResponseTime();
+    abstract public long sensorPeriod();
     //Driver modelled methods
     abstract public void open();
     abstract public void readAsync();
     abstract public void readPeriodic();
+    abstract public void writeAsync();
+    abstract public void writePeriodic();
     abstract public void close();
 
 
     public SensorData sensor;
-    public int max_read_response_time;
-    public int sensor_period;
-    final Lock lock = new ReentrantLock();
+    public long max_read_response_time;
+    public long max_write_response_time;
+    public long sensor_period;
+
+    final Lock lock = new ReentrantLock(); //lock sensor
     final Condition newRead  = lock.newCondition();
     final Condition readFinished = lock.newCondition();
+    public long last_read_time;
+    final Condition newWrite  = lock.newCondition();
+    final Condition writeFinished = lock.newCondition();
+    public long last_write_time;
+
     public DataService() {
         max_read_response_time = maxReadResponseTime();
+        max_write_response_time = maxWriteResponseTime();
         sensor_period          = sensorPeriod();
+        last_read_time         = 0;
+        last_write_time        = 0;
     }
 
     /**
@@ -47,6 +60,28 @@ abstract public class DataService extends Service {
         public void handleMessage(Message msg) {
             int msgType = msg.what;
             switch (msgType) {
+                case 23:
+                    try {
+                        // Incoming data
+                        Message resp = Message.obtain(null, 4);
+                        Bundle bResp = new Bundle();
+                        boolean fresh = false;
+                        lock.lock();
+                        sensor.setFields((HashMap<String,Object>)msg.getData().getSerializable("map"));
+                        newWrite.signal();
+                        try {
+                            fresh = writeFinished.await(max_write_response_time, TimeUnit.MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        lock.unlock();
+                        bResp.putBoolean("fresh",fresh);
+                        resp.setData(bResp);
+                        msg.replyTo.send(resp);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                    break;
                 default:
                     try {
                         // Incoming data
@@ -66,7 +101,6 @@ abstract public class DataService extends Service {
                         resp.setData(bResp);
                         msg.replyTo.send(resp);
                     } catch (RemoteException e) {
-
                         e.printStackTrace();
                     }
                     //super.handleMessage(msg);
@@ -92,18 +126,47 @@ abstract public class DataService extends Service {
             public void run() {
                 while(true) {
                     lock.lock();
+                    //Read
+                    boolean readUpdated = false;
                     try {
-                        if(newRead.await(sensor_period, TimeUnit.MILLISECONDS)) {
-                            //Got signal within period
-                            readAsync();
-                        } else {
-                            //Time elapsed
+                        long curTime= System.currentTimeMillis();
+                        long diffTime = curTime - last_read_time;
+                        if(diffTime > sensor_period) {
+                            last_read_time = curTime;
                             readPeriodic();
+                        }
+                        if(newRead.await(1, TimeUnit.MILLISECONDS)) { //If not instantaneous, move on
+                            //Got signal
+                            readAsync();
+                            readUpdated = true;
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    readFinished.signal();
+                    if(readUpdated) {
+                        readFinished.signal();
+                    }
+
+                    //Write
+                    boolean writeUpdated = false;
+                    try {
+                        long curTime= System.currentTimeMillis();
+                        long diffTime = curTime - last_write_time;
+                        if(diffTime > sensor_period) {
+                            last_write_time = curTime;
+                            writePeriodic();
+                        }
+                        if(newWrite.await(1, TimeUnit.MILLISECONDS)) { //If not instantaneous, move on
+                            //Got signal
+                            writeAsync();
+                            writeUpdated = true;
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if(writeUpdated) {
+                        writeFinished.signal();
+                    }
                     lock.unlock();
                 }
             }
